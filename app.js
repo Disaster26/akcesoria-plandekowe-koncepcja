@@ -1,6 +1,8 @@
 (function () {
   'use strict';
   var SKLEP = 'https://akcesoria-plandekowe.pl/';
+  var BG = window.PBG || {};
+  function fot(id) { var c = BG[id]; return c ? ' style="background:' + c + '"' : ' data-pelne'; }
   var BYID = {};
   PROD.forEach(function (p) { BYID[p.id] = p; });
   var $ = function (s, r) { return (r || document).querySelector(s); };
@@ -24,10 +26,12 @@
   PROD.forEach(function (p) { licz[p.k] = (licz[p.k] || 0) + 1; });
   var odm = function (n) { return n === 1 ? 'produkt' : (n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20)) ? 'produkty' : 'produktów'; };
   $('#katGrid').innerHTML = KOLEJ.map(function (k) {
-    return '<a class="kat" href="' + SKLEP + KSLUG[k] + '" target="_blank" rel="noopener"><span class="kat-img"><img src="img/p/' + KIMG[k] + '.webp" alt="" loading="lazy"></span><span class="kat-t"><b>' + esc(KAT[k]) + '</b><span>' + licz[k] + ' ' + odm(licz[k]) + '</span></span></a>';
+    return '<a class="kat" href="' + SKLEP + KSLUG[k] + '" target="_blank" rel="noopener"><span class="kat-img"' + fot(KIMG[k]) + '><img src="img/p/' + KIMG[k] + '.webp" alt="" loading="lazy"></span><span class="kat-t"><b>' + esc(KAT[k]) + '</b>' + (licz[k] ? '<span>' + licz[k] + ' ' + odm(licz[k]) + '</span>' : '<span>w sklepie</span>') + '</span></a>';
   }).join('');
 
   /* ---------- karta produktu ---------- */
+  var IPLUS = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>', IOK = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+  function addTxt(w) { return w ? IOK + 'Na liście' : IPLUS + 'Do listy'; }
   var lista = {};
   try { lista = JSON.parse(localStorage.getItem('ap_lista') || '{}') || {}; } catch (e) { lista = {}; }
   Object.keys(lista).forEach(function (id) { if (!BYID[id]) delete lista[id]; });
@@ -35,11 +39,11 @@
   function karta(p) {
     var w = !!lista[p.id];
     return '<article class="pk">' +
-      '<a class="pk-img" href="' + SKLEP + p.u + '" target="_blank" rel="noopener" tabindex="-1">' + (p.img ? '<img src="img/p/' + p.id + '.webp" alt="' + esc(p.n) + '" loading="lazy">' : '') + '</a>' +
+      '<a class="pk-img"' + fot(p.id) + ' href="' + SKLEP + p.u + '" target="_blank" rel="noopener" tabindex="-1">' + (p.img ? '<img src="img/p/' + p.id + '.webp" alt="' + esc(p.n) + '" loading="lazy">' : '') + '</a>' +
       '<div class="pk-b"><a class="pk-n" href="' + SKLEP + p.u + '" target="_blank" rel="noopener">' + esc(p.n) + '</a>' +
       (p.r ? '<span class="pk-r">kod: ' + esc(p.r) + (p.oe ? ' · OE ' + esc(p.oe) : '') + '</span>' : (p.oe ? '<span class="pk-r">OE ' + esc(p.oe) + '</span>' : '')) +
       (p.d ? '<p class="pk-d">' + esc(p.d) + '</p>' : '') +
-      '<div class="pk-dol"><span class="pk-c">' + zl(p.c) + '</span><button type="button" class="pk-add' + (w ? ' on' : '') + '" data-id="' + p.id + '">' + (w ? 'Na liście ✓' : 'Do listy') + '</button></div></div></article>';
+      '<div class="pk-dol"><span class="pk-c">' + zl(p.c) + '</span><button type="button" class="pk-add' + (w ? ' on' : '') + '" data-id="' + p.id + '">' + addTxt(w) + '</button></div></div></article>';
   }
 
   /* ---------- polecane ---------- */
@@ -128,7 +132,7 @@
     }
     tyt.textContent = tytul;
     lic.textContent = lista2.length ? lista2.length + ' ' + odm(lista2.length) : '';
-    wyn.innerHTML = (uw ? '<p class="uwaga">' + esc(uw) + '</p>' : '') + (lista2.length ? lista2.map(karta).join('') : (uw ? '' : '<p class="pusto2">Tu pojawią się części z cenami z naszego sklepu.</p>'));
+    wyn.innerHTML = (uw ? '<p class="uwaga">' + esc(uw) + '</p>' : '') + (lista2.length ? lista2.map(karta).join('') : (uw ? '' : '<div class="pusto2"><svg viewBox="0 0 48 48" aria-hidden="true"><rect x="6" y="14" width="24" height="18" rx="2"/><path d="M30 20h7l5 6v6H30z"/><circle cx="14" cy="34" r="4"/><circle cx="36" cy="34" r="4"/></svg><p>Tu pojawią się części z cenami ze sklepu.</p></div>'));
   }
   function norm(s) { return String(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/ł/g, 'l'); }
 
@@ -195,7 +199,7 @@
   function przelacz(id) {
     if (lista[id]) delete lista[id]; else lista[id] = 1;
     zapisz(); rysujListe();
-    document.querySelectorAll('.pk-add[data-id="' + id + '"]').forEach(function (b) { b.classList.toggle('on', !!lista[id]); b.textContent = lista[id] ? 'Na liście ✓' : 'Do listy'; });
+    document.querySelectorAll('.pk-add[data-id="' + id + '"]').forEach(function (b) { b.classList.toggle('on', !!lista[id]); b.innerHTML = addTxt(!!lista[id]); });
     toast(lista[id] ? 'Dodano do listy: ' + BYID[id].n : 'Usunięto z listy');
   }
   document.addEventListener('click', function (e) {
